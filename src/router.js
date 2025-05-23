@@ -1,0 +1,18 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import TeamList from './views/TeamList.vue'
+import TeamForm from './views/TeamForm.vue'
+import Daily from './views/AgileDaily.vue'
+
+const routes = [
+  { path: '/', component: TeamList },
+  { path: '/create', component: TeamForm },
+  { path: '/edit/:teamName', component: TeamForm, props: true },
+  { path: '/daily/:teamName', component: Daily, props: true },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes
+})
+
+export default router
