@@ -1,0 +1,22 @@
+{
+    "name": "AgileDaily",
+    "logoUrl": "https://yourdomain.com/logo.png",
+    "primaryColor": "#1976d2",
+    "secondaryColor": "#ffffff",
+    "openUrl": {
+      "url": "https://yourdomain.com/index.html"
+    },
+    "meet": {
+      "companionApp": {
+        "onCompanionAppOpenFunction": "openApp"
+      }
+    },
+    "oauthScopes": [],
+    "addOns": {
+      "common": {
+        "name": "AgileDaily",
+        "logoUrl": "https://yourdomain.com/logo.png"
+      }
+    }
+  }
+  

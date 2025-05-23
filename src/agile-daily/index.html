@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>AgileDaily</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <h1>AgileDaily</h1>
+    <p>Tempo total (min): <input id="duration" type="number" value="15" /></p>
+    <textarea id="names" placeholder="Um nome por linha..."></textarea>
+    <button onclick="startDaily()">Iniciar</button>
+
+    <div id="daily" class="hidden">
+      <h2 id="currentName"></h2>
+      <p id="countdown">00:00</p>
+      <button onclick="next()">Próximo</button>
+      <button onclick="skip()">Pular</button>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
