@@ -45,7 +45,7 @@
   <div>
     <div>
       <h3>Tempo atual: {{ currentTime }}</h3>
-      <h3>Tempo restante para daily terminar: {{ formatTime(timeLeftForDaily) }}</h3>
+      <h3>Tempo restante para daily terminar: {{ this.formatTime(timeLeft) }}</h3>
       <button secondary @click="refreshDaily">Reiniciar Daily</button>
     </div>
   </div>
@@ -57,7 +57,6 @@ export default {
   props: ['members'],
   data() {
     return {
-      currentDaily: null,
       currentMember: null,
       timer: 0,
       isRunning: false,
@@ -66,98 +65,47 @@ export default {
       hasStarted: false,
       spokenMembers: [],
       minutesFromNow: 15,
+      timeLeft: 0,
+      endTime: null,
+      startTime: null,
+      currentMemberMaxTime: 0
     }
   },
   computed: {
-    timeLeftForDaily() {
-      if (!this.currentDaily) return 0;
-      const now = new Date();
-      const [endHour, endMinute] = this.currentDaily.endTime.split(":").map(Number);
-      const dailyEnd = new Date();
-      dailyEnd.setHours(endHour, endMinute, 0);
-      return Math.max(0, Math.floor((dailyEnd - now) / 1000));
-    },
     timePerMember() {
-      if (!this.currentDaily) return 0;
-      const availableMembers = this.members.filter(
-        (member) => !this.spokenMembers.includes(member)
-      );
-      return availableMembers.length > 0
-        ? Math.floor(this.timeLeftForDaily / availableMembers.length)
-        : 0;
+      const remaining = this.members.filter(m => !this.spokenMembers.includes(m));
+      return remaining.length > 0 ? Math.floor(this.timeLeft / remaining.length) : 0;
     },
     isBlinking() {
       return this.currentMember && this.timer > 0 && this.timer <= this.timePerMember * 0.3;
     },
   },
-
   methods: {
     formatTime(seconds) {
-      if (isNaN(seconds) || seconds < 0) {
-        return "00:00";
-      }
+      if (isNaN(seconds) || seconds < 0) return "00:00";
       const minutes = Math.floor(seconds / 60);
       const secs = seconds % 60;
       return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
     },
-    calculateTotalDailyTime() {
-      if (!this.currentDaily) return 0;
-      const now = new Date();
-      const [endHour, endMinute] = this.currentDaily.endTime.split(":").map(Number);
-
-      const endTime = new Date();
-      endTime.setHours(endHour, endMinute, 0);
-
-      return Math.max(0, Math.floor((endTime - now) / 1000)); // Total time in seconds
-    },
-    selectDaily(dailyName) {
-      this.currentDaily = this.dailies[dailyName];
-      this.minutesFromNow = 15;
-      this.updateEndTime();
-    },
     startDaily() {
       this.hasStarted = true;
       const now = new Date();
-      const newEnd = new Date(now.getTime() + this.minutesFromNow * 60000);
-      const hh = String(newEnd.getHours()).padStart(2, "0");
-      const mm = String(newEnd.getMinutes()).padStart(2, "0");
-      if (!this.currentDaily) {
-        this.currentDaily = {};
-      }
-      this.currentDaily.startTime = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-      this.currentDaily.endTime = `${hh}:${mm}`;
+      this.startTime = now;
+      const end = new Date(now.getTime() + this.minutesFromNow * 60000);
+      this.endTime = end;
       this.updateCurrentTime();
-      this.nextMember();
-    },
-    switchDaily() {
-      if (this.currentDaily.name === "DS Daily") {
-        this.currentDaily = this.dailies["Interface Daily"];
-      } else {
-        this.currentDaily = this.dailies["DS Daily"];
-      }
-      this.resetDaily();
-    },
-    resetDaily() {
-      this.currentMember = null;
-      this.timer = 0;
-      this.isRunning = false;
-      this.hasStarted = false;
-      this.spokenMembers = [];
-      this.spokenMembers = [];
-      clearInterval(this.interval);
+      setInterval(() => this.updateCurrentTime(), 1000);
+      setTimeout(() => this.nextMember(), 50);
     },
     updateCurrentTime() {
       const now = new Date();
-      this.currentTime = now.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+      this.currentTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      this.timeLeft = this.endTime ? Math.max(0, Math.floor((this.endTime - now) / 1000)) : 0;
     },
     toggleStopwatch() {
       if (this.isRunning) {
         clearInterval(this.interval);
         this.isRunning = false;
-        this.isBlinking = false;
       } else {
         this.isRunning = true;
         this.interval = setInterval(() => {
@@ -174,30 +122,36 @@ export default {
         clearInterval(this.interval);
         this.isRunning = false;
       }
+
       const availableMembers = this.members.filter(
-        (member) =>
-          !this.spokenMembers.includes(member) &&
-          !this.spokenMembers.includes(member)
+        (member) => !this.spokenMembers.includes(member)
       );
+
       if (availableMembers.length > 0) {
         const randomIndex = Math.floor(Math.random() * availableMembers.length);
-        this.currentMember = availableMembers[randomIndex];
-        this.spokenMembers.push(this.currentMember); // Mark the member as spoken
-        this.timer = this.timePerMember; // Set timer for the next member
+        const selected = availableMembers[randomIndex];
+
+        this.currentMember = selected;
+
+        const now = new Date();
+        const totalRemainingSeconds = this.endTime
+          ? Math.max(0, Math.floor((this.endTime - now) / 1000))
+          : 0;
+        const remainingCount = this.members.length - this.spokenMembers.length;
+        this.timer = remainingCount > 0
+          ? Math.floor(totalRemainingSeconds / remainingCount)
+          : 0;
+        this.currentMemberMaxTime = this.timer;
+        this.spokenMembers.push(selected);
       } else {
         this.currentMember = null;
-        this.timer = 0; // No more members, stop the timer
+        this.timer = 0;
+        this.currentMemberMaxTime = this.timer;
       }
+
       this.toggleStopwatch();
     },
     toggleAvailability(member) {
-      const wasRunning = this.isRunning;
-
-      if (this.isRunning) {
-        clearInterval(this.interval);
-        this.isRunning = false;
-      }
-
       if (this.spokenMembers.includes(member)) {
         this.spokenMembers = this.spokenMembers.filter((m) => m !== member);
       } else {
@@ -208,43 +162,37 @@ export default {
 
       if (this.currentMember) {
         this.timer = this.timePerMember;
-        if (wasRunning) this.toggleStopwatch();
+        this.currentMemberMaxTime = this.timer;
       }
-    },
-    updateEndTime() {
-      const now = new Date();
-      const newEnd = new Date(now.getTime() + this.minutesFromNow * 60000);
-      const hh = String(newEnd.getHours()).padStart(2, "0");
-      const mm = String(newEnd.getMinutes()).padStart(2, "0");
-
-      if (!this.currentDaily) {
-        this.currentDaily = {};
-      }
-
-      this.currentDaily.endTime = `${hh}:${mm}`;
-      this.updateCurrentTime();
     },
     skipMember() {
       if (this.currentMember) {
-        this.spokenMembers = this.spokenMembers.filter(member => member !== this.currentMember);
+        this.spokenMembers = this.spokenMembers.filter(m => m !== this.currentMember);
         this.nextMember();
       }
     },
     refreshDaily() {
       this.resetDaily();
-      this.startDaily();
+    },
+    resetDaily() {
+      this.currentMember = null;
+      this.timer = 0;
+      this.currentMemberMaxTime = this.timer;
+      this.minutesFromNow = 15;
+      this.timeLeft = 0;
+      this.isRunning = false;
+      this.hasStarted = false;
+      this.spokenMembers = [];
+      clearInterval(this.interval);
     }
-  },
-  mounted() {
-    this.updateCurrentTime();
-    setInterval(this.updateCurrentTime, 1000); // Update current time and daily time left every second
   },
   watch: {
     timer(newVal) {
       const circle = document.querySelector('.countdown-fill');
       const radius = 45;
       const circumference = 2 * Math.PI * radius;
-      const percent = newVal / this.timePerMember;
+      const max = this.currentMemberMaxTime || 1;
+      const percent = newVal / max;
       if (circle) {
         circle.style.strokeDashoffset = `${circumference * (1 - percent)}`;
       }
