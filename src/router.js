@@ -8,6 +8,11 @@ const routes = [
   { path: '/create', component: TeamForm },
   { path: '/edit/:teamName', component: TeamForm, props: true },
   { path: '/daily/:teamName', component: Daily, props: true },
+  { path: '/invite', component: Daily, props: route => ({
+  start: route.query.start,
+  end: route.query.end,
+  guests: route.query.guests
+}) },
 ]
 
 const router = createRouter({

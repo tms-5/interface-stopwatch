@@ -54,7 +54,7 @@
 
 <script>
 export default {
-  props: ['members'],
+  props: ['members', 'start', 'end'],
   data() {
     return {
       currentMember: null,
@@ -69,6 +69,20 @@ export default {
       endTime: null,
       startTime: null,
       currentMemberMaxTime: 0
+    }
+  },
+  mounted() {
+    if (this.start && this.end) {
+      this.hasStarted = true;
+      const now = new Date();
+      this.startTime = now;
+      const start = new Date(Date.parse(this.start));
+      const end = new Date(Date.parse(this.end));
+      const diff = end.getTime() - start.getTime();
+      this.endTime = new Date(now.getTime() + diff);
+      this.updateCurrentTime();
+      this.currentTimeInterval = setInterval(() => this.updateCurrentTime(), 1000);
+      setTimeout(() => this.nextMember(), 50);
     }
   },
   computed: {
@@ -100,7 +114,7 @@ export default {
     updateCurrentTime() {
       const now = new Date();
       this.currentTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      this.timeLeft = this.endTime ? Math.max(0, Math.floor((this.endTime - now) / 1000)) : 0;
+      this.timeLeft = this.endTime ? Math.max(0, Math.floor((this.endTime.getTime() - now.getTime()) / 1000)) : 0;
     },
     toggleStopwatch() {
       if (this.isRunning) {
@@ -184,7 +198,8 @@ export default {
       this.hasStarted = false;
       this.spokenMembers = [];
       clearInterval(this.interval);
-    }
+    },
+
   },
   watch: {
     timer(newVal) {
