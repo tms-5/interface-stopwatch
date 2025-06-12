@@ -1,60 +1,64 @@
 <template>
-  <div>
-    <label v-if='!hasStarted'>
-      Tempo da daily (minutos):
-      <input type="number" id="minutesFromNow" name="minutesFromNow" v-model.number="minutesFromNow"
-        @change="updateEndTime" />
-    </label>
-  </div>
-  <div v-if="currentMember">
-    <h2>Membro: {{ currentMember }}</h2>
-    <div class="countdown-wrapper">
-      <svg class="countdown-ring" viewBox="0 0 100 100">
-        <circle class="countdown-bg" cx="50" cy="50" r="45" />
-        <circle class="countdown-fill" cx="50" cy="50" r="45" />
-      </svg>
-      <div class="countdown-text">{{ formatTime(timer) }}</div>
+  <div class="d-flex w-100 h-100 justify-center align-items-center g-2">
+    <div class="col w-25 align-start card">
+      <MemberList :teamName="teamName" :members="localMembers" :spokenMembers="spokenMembers"
+        :optionalMembers="localOptionalMembers" :spokenOptional="spokenOptional" @move-to-required="moveToRequired"
+        @toggle-availability="toggleAvailability" />
     </div>
-    <div class='buttons-control'>
-      <button secondary @click="toggleStopwatch">{{ isRunning ? 'Parar tempo' : 'Retomar tempo' }}</button>
-      <button secondary @click="skipMember">Pular membro</button>
-      <button primary @click="nextMember">Próximo membro</button>
+    <div class="col w-50 align-center">
+
+      <div class="card h-100 align-content-center">
+        <div v-if="currentMember" class="d-grid g-2 justify-items-center">
+          <CurrentMember :currentMember="currentMember" :timer="timer" :currentMemberMaxTime="currentMemberMaxTime"
+            :isRunning="!!isRunning" :timePerMember="timePerMember" :isBlinking="!!blinkClass" @skip-member="skipMember"
+            @next-member="nextMember" @toggle-stopwatch="toggleStopwatch" @reset-daily="resetDaily" />
+        </div>
+
+        <div v-else-if="!currentMember && hasEnded" class="d-grid g-2 justify-items-center">
+          <h2>Todos os membros falaram!</h2>
+          <button secondary @click="resetDaily">Reiniciar Daily</button>
+        </div>
+
+        <div v-else class="d-grid g-2 justify-items-center">
+          <label>
+            Tempo da daily (minutos):
+            <input type="number" id="minutesFromNow" name="minutesFromNow" v-model.number="minutesFromNow"
+              @change="updateEndTime" />
+          </label>
+          <button primary @click="startDaily">Iniciar Daily</button>
+        </div>
+      </div>
     </div>
+    <InfoDaily :currentTime="currentTime" :timeLeft="timeLeft" />
   </div>
-  <div v-else>
-    <h2>Todos os membros falaram!</h2>
-  </div>
-  <div v-if="!hasStarted" class='mt-1 mb-1'>
-    <button primary @click="startDaily">Iniciar Daily</button>
-  </div>
-  <ul>
-    <li v-for="(member, index) in members" :key="member" :class="{ spoken: spokenMembers.includes(member) }">
-      <input type="checkbox" :id="'member-' + index" :checked="spokenMembers.includes(member)"
-        @change="toggleAvailability(member)" />
-      <label :for="'member-' + index">{{ member }}</label>
-    </li>
-  </ul>
-  <div class='update'>
-    <h3>Nos atualize:</h3>
-    <ul>
-      <li>O que fiz ontem?</li>
-      <li>O que farei hoje?</li>
-      <li>Algum impedimento?</li>
-    </ul>
-  </div>
-  <div>
-    <div>
-      <h3>Tempo atual: {{ currentTime }}</h3>
-      <h3>Tempo restante para daily terminar: {{ this.formatTime(timeLeft) }}</h3>
-      <button secondary @click="refreshDaily">Reiniciar Daily</button>
-    </div>
-  </div>
-  <div :class="{ 'blinking-red': isBlinking }" class='background'></div>
+  <div :class="['background', blinkClass]"></div>
 </template>
 
 <script>
+import CurrentMember from './CurrentMember/CurrentMember.vue';
+import InfoDaily from './InfoDaily.vue';
+import MemberList from './MemberList.vue';
+
 export default {
-  props: ['members', 'start', 'end'],
+  props: {
+    teamName: String,
+    start: String,
+    end: String,
+    members: {
+      type: Array,
+      default: () => []
+    },
+    optionalMembers: {
+      type: Array,
+      default: () => []
+    }
+  },
+  name: 'DailyScreen',
+  components: {
+    MemberList,
+    CurrentMember,
+    InfoDaily
+  },
   data() {
     return {
       currentMember: null,
@@ -63,12 +67,18 @@ export default {
       interval: null,
       currentTime: "",
       hasStarted: false,
+      hasEnded: false,
       spokenMembers: [],
+      spokenOptional: [],
+      remainingOptional: [],
       minutesFromNow: 15,
       timeLeft: 0,
       endTime: null,
       startTime: null,
-      currentMemberMaxTime: 0
+      currentMemberMaxTime: 0,
+      isOptionalPhase: false,
+      localMembers: this.$props.members || [],
+      localOptionalMembers: this.$props.optionalMembers || [],
     }
   },
   mounted() {
@@ -80,27 +90,31 @@ export default {
       const end = new Date(Date.parse(this.end));
       const diff = end.getTime() - start.getTime();
       this.endTime = new Date(now.getTime() + diff);
-      this.updateCurrentTime();
-      this.currentTimeInterval = setInterval(() => this.updateCurrentTime(), 1000);
       setTimeout(() => this.nextMember(), 50);
-    }
+
+    } this.updateCurrentTime();
+    this.currentTimeInterval = setInterval(() => this.updateCurrentTime(), 1000);
   },
   computed: {
     timePerMember() {
-      const remaining = this.members.filter(m => !this.spokenMembers.includes(m));
-      return remaining.length > 0 ? Math.floor(this.timeLeft / remaining.length) : 0;
+      const obrigatoriosRestantes = this.localMembers.filter(m => !this.spokenMembers.includes(m)).length;
+      const temOpcionais = (this.localOptionalMembers || []).length > 0;
+      const divisor = obrigatoriosRestantes + (temOpcionais ? 1 : 0);
+
+      return divisor > 0 ? Math.floor(this.timeLeft / divisor) : 0;
     },
-    isBlinking() {
-      return this.currentMember && this.timer > 0 && this.timer <= this.timePerMember * 0.3;
+
+    blinkClass() {
+      if (this.currentMember && this.timer > 0 && this.timer <= 10) {
+        return 'blinking-very-fast';
+      }
+      if (this.currentMember && this.timer > 0 && this.timer <= 30) {
+        return 'blinking-slow';
+      }
+      return '';
     },
   },
   methods: {
-    formatTime(seconds) {
-      if (isNaN(seconds) || seconds < 0) return "00:00";
-      const minutes = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-    },
     startDaily() {
       this.hasStarted = true;
       const now = new Date();
@@ -108,14 +122,17 @@ export default {
       const end = new Date(now.getTime() + this.minutesFromNow * 60000);
       this.endTime = end;
       this.updateCurrentTime();
+      this.isRunning = true;
       setInterval(() => this.updateCurrentTime(), 1000);
       setTimeout(() => this.nextMember(), 50);
     },
+
     updateCurrentTime() {
       const now = new Date();
       this.currentTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
       this.timeLeft = this.endTime ? Math.max(0, Math.floor((this.endTime.getTime() - now.getTime()) / 1000)) : 0;
     },
+
     toggleStopwatch() {
       if (this.isRunning) {
         clearInterval(this.interval);
@@ -126,49 +143,93 @@ export default {
           if (this.timer > 0) {
             this.timer--;
           } else {
+            if (this.isOptionalPhase && this.currentMember) {
+              this.spokenOptional.push(this.currentMember);
+            }
             this.nextMember();
           }
         }, 1000);
       }
     },
+
     nextMember() {
       if (this.isRunning) {
         clearInterval(this.interval);
         this.isRunning = false;
+      } else {
+        return;
       }
 
-      const availableMembers = this.members.filter(
-        (member) => !this.spokenMembers.includes(member)
-      );
+      let availableMembers;
+
+      if (this.isOptionalPhase) {
+        availableMembers = this.remainingOptional;
+      } else {
+        availableMembers = this.localMembers.filter(m => !this.spokenMembers.includes(m));
+      }
+
 
       if (availableMembers.length > 0) {
-        const randomIndex = Math.floor(Math.random() * availableMembers.length);
-        const selected = availableMembers[randomIndex];
+        const selected = availableMembers[Math.floor(Math.random() * availableMembers.length)];
+
+
 
         this.currentMember = selected;
 
-        const now = new Date();
-        const totalRemainingSeconds = this.endTime
-          ? Math.max(0, Math.floor((this.endTime - now) / 1000))
-          : 0;
-        const remainingCount = this.members.length - this.spokenMembers.length;
-        this.timer = remainingCount > 0
-          ? Math.floor(totalRemainingSeconds / remainingCount)
-          : 0;
-        this.currentMemberMaxTime = this.timer;
-        this.spokenMembers.push(selected);
+        if (this.isOptionalPhase) {
+          this.timer = Math.floor(this.timePerMember / this.remainingOptional.length);
+          this.currentMemberMaxTime = this.timer;
+          this.remainingOptional.shift();
+          this.spokenOptional.push(selected);
+        } else {
+          const remainingCount = availableMembers.length;
+          this.timer = remainingCount > 0
+            ? Math.floor(this.timeLeft / (remainingCount + (this.optionalMembers?.length > 0 ? 1 : 0)))
+            : 0;
+          this.currentMemberMaxTime = this.timer;
+          this.spokenMembers.push(selected);
+        }
+
+
       } else {
-        this.currentMember = null;
-        this.timer = 0;
-        this.currentMemberMaxTime = this.timer;
+        if (
+          this.spokenMembers.length < this.localMembers.length
+        ) {
+          setTimeout(() => this.nextMember(), 0);
+        } else if (
+          !this.isOptionalPhase &&
+          this.remainingOptional.length > 0
+        ) {
+          this.isOptionalPhase = true;
+          setTimeout(() => this.nextMember(), 0);
+        } else {
+          this.currentMember = null;
+          this.timer = 0;
+          this.currentMemberMaxTime = 0;
+          this.isRunning = false;
+          this.hasEnded = true;
+          return;
+        }
       }
 
       this.toggleStopwatch();
     },
-    toggleAvailability(member) {
-      if (this.spokenMembers.includes(member)) {
-        this.spokenMembers = this.spokenMembers.filter((m) => m !== member);
+
+    toggleAvailability(member, type) {
+      if (type === 'optional') {
+        if (this.spokenOptional.includes(member) || this.spokenMembers.includes(member)) {
+          this.spokenOptional = this.spokenOptional.filter((m) => m !== member);
+        } else {
+          this.spokenOptional.push(member);
+          this.remainingOptional = this.localOptionalMembers.filter(m => !this.spokenOptional.includes(m));
+        }
       } else {
+        if (this.spokenMembers.includes(member)) {
+          this.spokenMembers = this.spokenMembers.filter((m) => m !== member);
+        } else if (!this.localMembers.includes(member)) {
+          this.localMembers.push(member);
+        }
+        this.availableMembers = this.localMembers.filter(m => !this.spokenMembers.includes(m));
         this.spokenMembers.push(member);
       }
 
@@ -179,15 +240,18 @@ export default {
         this.currentMemberMaxTime = this.timer;
       }
     },
+
     skipMember() {
       if (this.currentMember) {
         this.spokenMembers = this.spokenMembers.filter(m => m !== this.currentMember);
         this.nextMember();
       }
     },
+
     refreshDaily() {
       this.resetDaily();
     },
+
     resetDaily() {
       this.currentMember = null;
       this.timer = 0;
@@ -197,7 +261,28 @@ export default {
       this.isRunning = false;
       this.hasStarted = false;
       this.spokenMembers = [];
+      this.spokenOptional = [];
+      this.remainingOptional = [];
       clearInterval(this.interval);
+    },
+
+    moveToRequired(member, index) {
+      const newOptional = this.localOptionalMembers.filter(m => m !== member);
+      this.localOptionalMembers = newOptional;
+
+      this.spokenOptional = this.spokenOptional.filter(m => m !== member);
+
+        if (!this.localMembers.includes(member)) {
+        this.localMembers.splice(index, 0, member);
+    }
+
+      this.remainingOptional = newOptional.filter(m => !this.spokenOptional.includes(m));
+
+      this.updateCurrentTime();
+      if (this.currentMember) {
+        this.timer = this.timePerMember;
+        this.currentMemberMaxTime = this.timer;
+      }
     },
 
   },
@@ -211,60 +296,43 @@ export default {
       if (circle) {
         circle.style.strokeDashoffset = `${circumference * (1 - percent)}`;
       }
+    },
+    members: {
+      handler(newVal) {
+        this.localMembers = [...newVal];
+      },
+      immediate: true
+    },
+    optionalMembers: {
+      handler(newVal) {
+        this.localOptionalMembers = [...newVal];
+      },
+      immediate: true
     }
   }
 }
 </script>
-<style scoped>
-.buttons-control {
+<style>
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin: 20px;
+}
+
+.col {
   display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin: 20px 0;
-
+  flex-direction: column;
+  gap: 16px;
 }
 
-ul {
-  list-style: none;
-  padding: 0;
-  width: 20%;
-  margin: auto;
-}
-
-@media screen and (max-width: 1000px) {
-  ul {
-    width: 100%;
-  }
-}
-
-li {
-  margin: 5px 0;
-  justify-self: left;
-  text-wrap-mode: nowrap;
-}
-
-li.spoken {
-  text-decoration: line-through;
-}
-
-li.unavailable {
-  color: gray;
-  text-decoration: line-through;
-}
-
-input[type="time"] {
-  margin-left: 10px;
-}
-
-.update {
-  margin-top: 20px;
-  padding: 10px 10px 20px 10px;
-  background-color: #f5f4f7;
-  border-radius: 5px;
-}
-
-.update ul {
-  width: 155px;
+.card {
+  background: #FFFFFF;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  padding: 8px 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .background {
@@ -276,15 +344,18 @@ input[type="time"] {
   height: 100vh;
 }
 
-.blinking-red {
-  animation: blink 1s infinite;
-  background-color: red;
+.background.blinking-slow {
+  animation: blink-slow 3s infinite;
+  background-color: rgb(255 187 187);
 }
 
-@keyframes blink {
+.background.blinking-very-fast {
+  animation: blink-fast 1.3s infinite;
+  background-color: rgb(121, 0, 0);
+}
 
-  0%,
-  50% {
+@keyframes blink-slow {
+  0% {
     opacity: 1;
   }
 
@@ -293,54 +364,13 @@ input[type="time"] {
   }
 }
 
-.countdown-wrapper {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  margin: auto;
-}
+@keyframes blink-fast {
+  0% {
+    opacity: 1;
+  }
 
-.countdown-ring {
-  transform: rotate(-90deg);
-  width: 100px;
-  height: 100px;
-}
-
-.countdown-bg,
-.countdown-fill {
-  fill: none;
-  stroke-width: 10;
-  cx: 50;
-  cy: 50;
-  r: 45;
-}
-
-.countdown-bg {
-  stroke: #eee;
-}
-
-.countdown-fill {
-  stroke: #97cca1;
-  stroke-linecap: round;
-  stroke-dasharray: 282.6;
-  stroke-dashoffset: 0;
-  transition: stroke-dashoffset 1s linear;
-}
-
-.countdown-text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.2rem;
-  font-weight: bold;
-}
-
-.mt-1 {
-  margin-top: 1rem;
-}
-
-.mb-1 {
-  margin-bottom: 1rem;
+  100% {
+    opacity: 0;
+  }
 }
 </style>
