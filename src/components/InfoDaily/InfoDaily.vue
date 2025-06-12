@@ -1,5 +1,5 @@
 <template>
-    <div class="col w-25 g-2 card justify-center">
+    <div class="col w-25 g-2 card justify-center" id="info-daily">
         <div class="card d-grid" id="daily-date">
             <div class="d-flex g-1 text-start mb-1 align-center">
                 <div class="col">
@@ -137,3 +137,14 @@ export default {
     }
 };
 </script>
+<style>
+@media screen and (max-width: 1000px) {
+    #info-daily {
+        width: 100%;
+        margin-bottom: 1rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, 279px);
+    }
+
+}
+</style>

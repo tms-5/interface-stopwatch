@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex w-100 h-100 justify-center align-items-center g-2">
+  <div class="d-flex w-100 h-100 justify-center align-items-center g-2" id="daily-screen">
     <div class="col w-25 align-start card">
       <MemberList :teamName="teamName" :members="localMembers" :spokenMembers="spokenMembers"
         :optionalMembers="localOptionalMembers" :spokenOptional="spokenOptional" @move-to-required="moveToRequired"
@@ -272,9 +272,9 @@ export default {
 
       this.spokenOptional = this.spokenOptional.filter(m => m !== member);
 
-        if (!this.localMembers.includes(member)) {
+      if (!this.localMembers.includes(member)) {
         this.localMembers.splice(index, 0, member);
-    }
+      }
 
       this.remainingOptional = newOptional.filter(m => !this.spokenOptional.includes(m));
 
@@ -372,5 +372,21 @@ export default {
   100% {
     opacity: 0;
   }
+}
+
+@media screen and (max-width: 1000px) {
+  #daily-screen {
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .col {
+    width: 100% !important;
+  }
+
+  .card {
+    width: 90%;
+  }
+
 }
 </style>
