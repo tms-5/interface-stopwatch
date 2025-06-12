@@ -1,6 +1,6 @@
 <template>
     <div class="col w-25 g-2 card justify-center">
-        <div class="card d-grid">
+        <div class="card d-grid" id="daily-date">
             <div class="d-flex g-1 text-start mb-1 align-center">
                 <div class="col">
                     <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -27,7 +27,7 @@
                 }) }}
             </span>
         </div>
-        <div class='card'>
+        <div class='card' id="daily-info">
             <div class="d-flex g-1 text-start align-center f-1 fw-600">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <mask id="mask0_3296_566" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="0" y="0" width="24"
@@ -48,7 +48,7 @@
                 <li>Algum impedimento?</li>
             </ul>
         </div>
-        <div class="card">
+        <div class="card" id="daily-time">
             <div class="d-flex g-1 text-start mb-1 align-center">
                 <div class="col">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -69,7 +69,7 @@
             </div>
             <span class="f-2 fw-600">{{ currentTime }}</span>
         </div>
-        <div class="card">
+        <div class="card" id="daily-time-end">
             <div class="d-flex g-1 text-start mb-1 align-center">
                 <div class="col">
                     <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -96,7 +96,7 @@
                     minute: '2-digit'
                 }) }}</span>
         </div>
-        <div class="card">
+        <div class="card" id="daily-time-left">
             <div class="d-flex g-1 text-start mb-1 align-center">
                 <div class="col">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

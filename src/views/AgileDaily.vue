@@ -5,7 +5,7 @@
   </div>
 </template>
 <script>
-import DailyScreen from '../components/DailyScreen.vue'
+import DailyScreen from '../components/DailyScreen/DailyScreen.vue'
 
 export default {
   components: { DailyScreen },

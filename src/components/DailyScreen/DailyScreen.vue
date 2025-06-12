@@ -35,9 +35,9 @@
 </template>
 
 <script>
-import CurrentMember from './CurrentMember/CurrentMember.vue';
-import InfoDaily from './InfoDaily.vue';
-import MemberList from './MemberList.vue';
+import CurrentMember from '../CurrentMember/CurrentMember.vue';
+import InfoDaily from '../InfoDaily/InfoDaily.vue';
+import MemberList from '../MemberList/MemberList.vue';
 
 export default {
   props: {
