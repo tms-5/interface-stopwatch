@@ -125,7 +125,8 @@ export default {
     name: 'InfoDaily',
     props: {
         timeLeft: Number,
-        currentTime: String
+        currentTime: String,
+        isRunning: Boolean
     },
     methods: {
         formatTime(seconds) {

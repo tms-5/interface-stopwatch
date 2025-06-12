@@ -23,13 +23,13 @@
           <label>
             Tempo da daily (minutos):
             <input type="number" id="minutesFromNow" name="minutesFromNow" v-model.number="minutesFromNow"
-              @change="updateEndTime" />
+              @change="updateEndTime" min="1" max="60" />
           </label>
           <button primary @click="startDaily">Iniciar Daily</button>
         </div>
       </div>
     </div>
-    <InfoDaily :currentTime="currentTime" :timeLeft="timeLeft" />
+    <InfoDaily :currentTime="currentTime" :timeLeft="timeLeft" :isRunning="isRunning" />
   </div>
   <div :class="['background', blinkClass]"></div>
 </template>
@@ -72,7 +72,7 @@ export default {
       spokenOptional: [],
       remainingOptional: [],
       minutesFromNow: 15,
-      timeLeft: 0,
+      timeLeft: 15,
       endTime: null,
       startTime: null,
       currentMemberMaxTime: 0,
@@ -91,9 +91,10 @@ export default {
       const diff = end.getTime() - start.getTime();
       this.endTime = new Date(now.getTime() + diff);
       setTimeout(() => this.nextMember(), 50);
-
-    } this.updateCurrentTime();
+    }
+    this.updateCurrentTime();
     this.currentTimeInterval = setInterval(() => this.updateCurrentTime(), 1000);
+    this.updateEndTime();
   },
   computed: {
     timePerMember() {
@@ -121,8 +122,11 @@ export default {
       this.startTime = now;
       const end = new Date(now.getTime() + this.minutesFromNow * 60000);
       this.endTime = end;
-      this.updateCurrentTime();
       this.isRunning = true;
+      this.updateCurrentTime();
+      if (this.spokenMembers.length === this.localMembers.length) {
+        this.isOptionalPhase = true;
+      }
       setInterval(() => this.updateCurrentTime(), 1000);
       setTimeout(() => this.nextMember(), 50);
     },
@@ -130,7 +134,15 @@ export default {
     updateCurrentTime() {
       const now = new Date();
       this.currentTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      this.timeLeft = this.endTime ? Math.max(0, Math.floor((this.endTime.getTime() - now.getTime()) / 1000)) : 0;
+      if (this.isRunning) {
+        this.timeLeft = this.endTime ? Math.max(0, Math.floor((this.endTime.getTime() - now.getTime()) / 1000)) : 0;
+      }
+    },
+
+    updateEndTime() {
+      const now = new Date();
+      this.endTime = new Date(now.getTime() + this.minutesFromNow * 60000);
+      this.timeLeft = Math.floor((this.endTime.getTime() - now.getTime()) / 1000);
     },
 
     toggleStopwatch() {
@@ -143,9 +155,6 @@ export default {
           if (this.timer > 0) {
             this.timer--;
           } else {
-            if (this.isOptionalPhase && this.currentMember) {
-              this.spokenOptional.push(this.currentMember);
-            }
             this.nextMember();
           }
         }, 1000);
@@ -162,7 +171,8 @@ export default {
 
       let availableMembers;
 
-      if (this.isOptionalPhase) {
+
+      if (this.isOptionalPhase || this.localMembers.length === this.spokenMembers.length) {
         availableMembers = this.remainingOptional;
       } else {
         availableMembers = this.localMembers.filter(m => !this.spokenMembers.includes(m));
@@ -171,8 +181,6 @@ export default {
 
       if (availableMembers.length > 0) {
         const selected = availableMembers[Math.floor(Math.random() * availableMembers.length)];
-
-
 
         this.currentMember = selected;
 
@@ -306,6 +314,7 @@ export default {
     optionalMembers: {
       handler(newVal) {
         this.localOptionalMembers = [...newVal];
+        this.remainingOptional = [...newVal];
       },
       immediate: true
     }
