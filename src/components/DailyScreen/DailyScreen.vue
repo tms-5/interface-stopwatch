@@ -1,16 +1,18 @@
 <template>
   <div class="d-flex w-100 h-100 justify-center align-items-center g-2" id="daily-screen">
-    <div class="col w-25 align-start card">
+    <div class="d-flex w-100 h-auto justify-s-a align-items-center g-2" id="daily-screen-content">
+      <div class="col w-50 align-start card">
       <MemberList :teamName="teamName" :members="localMembers" :spokenMembers="spokenMembers"
         :optionalMembers="localOptionalMembers" :spokenOptional="spokenOptional" @move-to-required="moveToRequired"
         @toggle-availability="toggleAvailability" />
-    </div>
-    <div class="col w-50 align-center">
+      </div>
+
+      <div class="col w-50 align-center">
 
       <div class="card h-100 align-content-center">
         <div v-if="currentMember" class="d-grid g-2 justify-items-center">
           <CurrentMember :currentMember="currentMember" :timer="timer" :currentMemberMaxTime="currentMemberMaxTime"
-            :isRunning="!!isRunning" :timePerMember="timePerMember" :isBlinking="!!blinkClass" @skip-member="skipMember"
+            :isRunning="!!isRunning" :timePerMember="timePerMember" :isBlinking="!!blinkClass" :selectedSound="sound" @skip-member="skipMember"
             @next-member="nextMember" @toggle-stopwatch="toggleStopwatch" @reset-daily="resetDaily" />
         </div>
 
@@ -28,7 +30,9 @@
           <button primary @click="startDaily">Iniciar Daily</button>
         </div>
       </div>
+      </div>
     </div>
+
     <InfoDaily :currentTime="currentTime" :timeLeft="timeLeft" :isRunning="isRunning" />
   </div>
   <div :class="['background', blinkClass]"></div>
@@ -51,6 +55,10 @@ export default {
     optionalMembers: {
       type: Array,
       default: () => []
+    },
+    sound: {
+      type: String,
+      default: ''
     }
   },
   name: 'DailyScreen',
@@ -79,6 +87,7 @@ export default {
       isOptionalPhase: false,
       localMembers: this.$props.members || [],
       localOptionalMembers: this.$props.optionalMembers || [],
+      excludeOnce: null,
     }
   },
   mounted() {
@@ -124,6 +133,9 @@ export default {
       this.endTime = end;
       this.isRunning = true;
       this.updateCurrentTime();
+      
+      this.remainingOptional = [...this.localOptionalMembers];
+      
       if (this.spokenMembers.length === this.localMembers.length) {
         this.isOptionalPhase = true;
       }
@@ -162,15 +174,13 @@ export default {
     },
 
     nextMember() {
-      if (this.isRunning) {
+      // Always stop current member's stopwatch if running, then proceed
+      if (this.interval) {
         clearInterval(this.interval);
-        this.isRunning = false;
-      } else {
-        return;
       }
+      this.isRunning = false;
 
       let availableMembers;
-
 
       if (this.isOptionalPhase || this.localMembers.length === this.spokenMembers.length) {
         availableMembers = this.remainingOptional;
@@ -178,43 +188,50 @@ export default {
         availableMembers = this.localMembers.filter(m => !this.spokenMembers.includes(m));
       }
 
-
       if (availableMembers.length > 0) {
-        const selected = availableMembers[Math.floor(Math.random() * availableMembers.length)];
+        let candidates = availableMembers;
+        if (this.excludeOnce && candidates.length > 1) {
+          const filtered = candidates.filter(m => m !== this.excludeOnce);
+          if (filtered.length > 0) {
+            candidates = filtered;
+          }
+        }
+        const selected = candidates[Math.floor(Math.random() * candidates.length)];
 
         this.currentMember = selected;
+        this.excludeOnce = null;
 
         if (this.isOptionalPhase) {
-          this.timer = Math.floor(this.timePerMember / this.remainingOptional.length);
-          this.currentMemberMaxTime = this.timer;
-          this.remainingOptional.shift();
-          this.spokenOptional.push(selected);
-        } else {
-          const remainingCount = availableMembers.length;
-          this.timer = remainingCount > 0
-            ? Math.floor(this.timeLeft / (remainingCount + (this.optionalMembers?.length > 0 ? 1 : 0)))
+          // In optional phase, split remaining time equally among remaining optional members
+          this.timer = this.remainingOptional.length > 0
+            ? Math.floor(this.timePerMember / this.remainingOptional.length)
             : 0;
           this.currentMemberMaxTime = this.timer;
-          this.spokenMembers.push(selected);
+          this.remainingOptional = this.remainingOptional.filter(m => m !== selected);
+          if (!this.spokenOptional.includes(selected)) {
+            this.spokenOptional.push(selected);
+          }
+        } else {
+          // While in required phase, reserve one slot for optionals (if any remain)
+          const remainingCount = availableMembers.length;
+          this.timer = remainingCount > 0
+            ? Math.floor(this.timeLeft / (remainingCount + (this.remainingOptional.length > 0 ? 1 : 0)))
+            : 0;
+          this.currentMemberMaxTime = this.timer;
+          if (!this.spokenMembers.includes(selected)) {
+            this.spokenMembers.push(selected);
+          }
         }
 
-
       } else {
-        if (
-          this.spokenMembers.length < this.localMembers.length
-        ) {
+        if (this.spokenMembers.length < this.localMembers.length) {
           setTimeout(() => this.nextMember(), 0);
-        } else if (
-          !this.isOptionalPhase &&
-          this.remainingOptional.length > 0
-        ) {
+        } else if (!this.isOptionalPhase && this.remainingOptional.length > 0) {
           this.isOptionalPhase = true;
           setTimeout(() => this.nextMember(), 0);
         } else {
           this.currentMember = null;
-          this.timer = 0;
           this.currentMemberMaxTime = 0;
-          this.isRunning = false;
           this.hasEnded = true;
           return;
         }
@@ -227,6 +244,7 @@ export default {
       if (type === 'optional') {
         if (this.spokenOptional.includes(member) || this.spokenMembers.includes(member)) {
           this.spokenOptional = this.spokenOptional.filter((m) => m !== member);
+          this.remainingOptional = this.localOptionalMembers.filter(m => !this.spokenOptional.includes(m));
         } else {
           this.spokenOptional.push(member);
           this.remainingOptional = this.localOptionalMembers.filter(m => !this.spokenOptional.includes(m));
@@ -234,11 +252,12 @@ export default {
       } else {
         if (this.spokenMembers.includes(member)) {
           this.spokenMembers = this.spokenMembers.filter((m) => m !== member);
-        } else if (!this.localMembers.includes(member)) {
-          this.localMembers.push(member);
+        } else {
+          if (!this.localMembers.includes(member)) {
+            this.localMembers.push(member);
+          }
+          this.spokenMembers.push(member);
         }
-        this.availableMembers = this.localMembers.filter(m => !this.spokenMembers.includes(m));
-        this.spokenMembers.push(member);
       }
 
       this.updateCurrentTime();
@@ -250,10 +269,34 @@ export default {
     },
 
     skipMember() {
-      if (this.currentMember) {
-        this.spokenMembers = this.spokenMembers.filter(m => m !== this.currentMember);
-        this.nextMember();
+      if (!this.currentMember) return;
+
+      // Pause current countdown if needed
+      if (this.interval) {
+        clearInterval(this.interval);
       }
+      this.isRunning = false;
+
+      const member = this.currentMember;
+      this.excludeOnce = member;
+
+      if (this.isOptionalPhase) {
+        // Return optional member back to the optional pool
+        this.spokenOptional = this.spokenOptional.filter(m => m !== member);
+        if (!this.remainingOptional.includes(member)) {
+          this.remainingOptional.push(member);
+        }
+      } else {
+        // Return required member back to the random pool
+        this.spokenMembers = this.spokenMembers.filter(m => m !== member);
+      }
+
+      // Clear current member state before moving on
+      this.currentMember = null;
+      this.currentMemberMaxTime = 0;
+
+      // Move to the next member with redistributed time
+      this.nextMember();
     },
 
     refreshDaily() {
@@ -268,6 +311,8 @@ export default {
       this.timeLeft = 0;
       this.isRunning = false;
       this.hasStarted = false;
+      this.hasEnded = false;
+      this.isOptionalPhase = false;
       this.spokenMembers = [];
       this.spokenOptional = [];
       this.remainingOptional = [];
@@ -332,7 +377,7 @@ export default {
 .col {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
 }
 
 .card {
@@ -342,6 +387,7 @@ export default {
   padding: 8px 16px;
   width: 100%;
   box-sizing: border-box;
+  min-height: fit-content;
 }
 
 .background {
@@ -350,7 +396,7 @@ export default {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100vh;
+  height: 100%;
 }
 
 .background.blinking-slow {
@@ -387,15 +433,17 @@ export default {
   #daily-screen {
     flex-direction: column;
     justify-content: flex-start;
+    height: auto;
   }
 
   .col {
     width: 100% !important;
   }
-
-  .card {
-    width: 90%;
-  }
-
 }
+ 
+ @media screen and (max-width: 500px) {
+  #daily-screen-content {
+    flex-direction: column;
+  }
+ }
 </style>

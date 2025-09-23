@@ -1,5 +1,5 @@
 <template>
-    <div class="col w-25 g-2 card justify-center" id="info-daily">
+    <div class="col w-25 g-2 card justify-center">
         <div class="card d-grid" id="daily-date">
             <div class="d-flex g-1 text-start mb-1 align-center">
                 <div class="col">
@@ -139,6 +139,9 @@ export default {
 };
 </script>
 <style>
+.card .col:first-child {
+    width: 25px !important;
+}
 @media screen and (max-width: 1000px) {
     #info-daily {
         width: 100%;

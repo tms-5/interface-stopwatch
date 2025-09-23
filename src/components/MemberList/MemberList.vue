@@ -9,11 +9,10 @@
                 Solte aqui para tornar obrigatório
             </li>
             <li :class="['card', { spoken: spokenMembers.includes(member) }]"
-                @click="!spokenMembers.includes(member) && toggleAvailability(member, 'mandatory')"
+                @click="toggleAvailability(member, 'mandatory')"
                 @dragover.prevent="onDragOverRequired(index)" @drop.prevent="onDropToRequired(index)">
-                <div class="cbx" :disabled="spokenMembers.includes(member)">
-                    <input id="cbx" type="checkbox" :value="member" :checked="spokenMembers.includes(member)"
-                        :disabled="spokenMembers.includes(member)" />
+                <div class="cbx">
+                    <input id="cbx" type="checkbox" :value="member" :checked="spokenMembers.includes(member)" />
                     <label for="cbx"></label>
                     <svg width="14" height="13" viewBox="0 0 15 14" fill="none">
                         <path d="M2 8.36364L6.23077 12L13 2"></path>
@@ -35,11 +34,10 @@
             <li v-for="(member, index) in optionalMembers" :key="'optional-' + index" draggable="true"
                 @dragstart="onDragStart(member)" @dragend="onDragEnd"
                 :class="['card', { spoken: spokenOptional.includes(member) || spokenMembers.includes(member) }]"
-                @click="!(spokenOptional.includes(member) || spokenMembers.includes(member)) && toggleAvailability(member, members.includes(member) ? 'mandatory' : 'optional')">
-                <div class="cbx" :disabled="spokenOptional.includes(member) || spokenMembers.includes(member)">
+                @click="toggleAvailability(member, members.includes(member) ? 'mandatory' : 'optional')">
+                <div class="cbx">
                     <input id="optional-cbx" type="checkbox" :value="member"
-                        :checked="spokenOptional.includes(member) || spokenMembers.includes(member)"
-                        :disabled="spokenOptional.includes(member) || spokenMembers.includes(member)" />
+                        :checked="spokenOptional.includes(member) || spokenMembers.includes(member)" />
                     <label for="optional-cbx"></label>
                     <svg width="14" height="13" viewBox="0 0 15 14" fill="none">
                         <path d="M2 8.36364L6.23077 12L13 2"></path>

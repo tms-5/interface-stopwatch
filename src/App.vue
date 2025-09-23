@@ -35,13 +35,14 @@ h6 {
 }
 
 .app {
-  margin-top: 60px;
+  margin-top: 38px;
   padding: 32px;
   display: flex;
   flex-direction: column;
   gap: 24px;
-  justify-self: anchor-center;
-  height: calc(100% - 60px);
+  height: auto;
+  position: relative;
+  align-items: center;
 }
 
 .topbar {
@@ -53,6 +54,7 @@ h6 {
   top: 0;
   left: 0;
   width: 100%;
+  background: white;
   z-index: 1000;
 }
 
@@ -70,6 +72,13 @@ button {
   border: none;
   cursor: pointer;
   align-items: center;
+}
+
+button[small] {
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 16px;
+  border-radius: 12px;
 }
 
 button[primary] {
@@ -126,38 +135,12 @@ textarea:focus {
   ;
 }
 
-@media (min-width: 576px) {
-  .app {
-    width: 100%;
-  }
-}
-
-/* Tablets (ex: iPads em retrato, Laptops pequenos) */
-@media (min-width: 768px) {
-  .app {
-    width: 720px;
-    padding: 20px;
-  }
-}
-
-/* Desktops e Laptops (ex: Telas de 13" a 15") */
-@media (min-width: 992px) {
-  .app {
-    width: 960px;
-  }
-}
-
-/* Desktops Grandes e Monitores de Alta Resolução */
-@media (min-width: 1200px) {
-  .app {
-    width: 1140px;
-  }
-}
-
-/* Monitores Extra Grandes (opcional) */
-@media (min-width: 1400px) {
-  .app {
-    width: 1320px;
-  }
+select {
+  border: none;
+  outline: 1px solid #cbd2db;
+  transition: outline 0.2s ease-in-out;
+  box-shadow: none;
+  padding: 4px 8px;
+  border-radius: 4px;
 }
 </style>

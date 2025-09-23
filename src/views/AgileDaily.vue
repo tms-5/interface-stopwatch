@@ -1,7 +1,8 @@
 <template>
   <button secondary @click="goBack" class="back-button">Voltar para os times</button>
-  <div class="h-100">
-    <DailyScreen :members="team.members" :start="start" :end="end" :team-name="team.name" :optionalMembers="team.optionalMembers" />
+  <div class="h-100 w-100">
+    <DailyScreen :members="team.members" :start="start" :end="end" :team-name="team.name"
+      :optionalMembers="team.optionalMembers" :sound="team.sound" />
   </div>
 </template>
 <script>
@@ -12,7 +13,7 @@ export default {
   props: ['teamName', 'start', 'end', 'guests'],
   data() {
     return {
-      team: { name: '', members: [], optionalMembers: [] }
+      team: { name: '', members: [], optionalMembers: [], sound: '' }
     }
   },
   mounted() {
@@ -34,11 +35,10 @@ export default {
 </script>
 <style scoped>
 .back-button {
-  position: absolute;
-  top: 8px;
+  position: fixed;
+  top: 13px;
   right: 8px;
   z-index: 1060;
   cursor: pointer;
 }
-
 </style>

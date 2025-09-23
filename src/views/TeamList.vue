@@ -1,12 +1,12 @@
 <template>
-  <div>
+  <div class='card w-75'>
     <h1>Seus Times</h1>
     <ul>
       <li v-for="team in teams" :key="team.name">
         <router-link :to="`/daily/${team.name}`">{{ team.name }}</router-link>
-        <div class='flex-buttons'>
-          <button secondary @click="editTeam(team.name)">Editar</button>
-          <button secondary @click="confirmDelete(team.name)">Excluir</button>
+        <div class='flex-buttons gap-2'>
+          <button small secondary @click="editTeam(team.name)">Editar</button>
+          <button small secondary @click="confirmDelete(team.name)">Excluir</button>
         </div>
       </li>
     </ul>
@@ -56,7 +56,7 @@ ul {
 }
 
 li {
-  margin: 8px 0;
+  margin: 16px 0;
   text-align: left;
   display: flex;
   align-items: center;
