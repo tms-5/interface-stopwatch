@@ -1,19 +1,19 @@
 <template>
-  <button secondary @click="goBack" class="back-button">Voltar para os times</button>
+  <ButtonComponent secondary @click="goBack" class="back-button">Voltar para os times</ButtonComponent>
   <div class="h-100 w-100">
     <DailyScreen :members="team.members" :start="start" :end="end" :team-name="team.name"
-      :optionalMembers="team.optionalMembers" :sound="team.sound" />
+      :optionalMembers="team.optionalMembers" :sound="team.sound" :speak-names="team.speakNames" />
   </div>
 </template>
 <script>
 import DailyScreen from '../components/DailyScreen/DailyScreen.vue'
-
+import ButtonComponent from '../assets/components/button/button.vue'
 export default {
-  components: { DailyScreen },
+  components: { DailyScreen, ButtonComponent },
   props: ['teamName', 'start', 'end', 'guests'],
   data() {
     return {
-      team: { name: '', members: [], optionalMembers: [], sound: '' }
+      team: { name: '', members: [], optionalMembers: [], sound: '', speakNames: false }
     }
   },
   mounted() {

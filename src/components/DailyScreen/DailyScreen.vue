@@ -12,13 +12,13 @@
       <div class="card h-100 align-content-center">
         <div v-if="currentMember" class="d-grid g-2 justify-items-center">
           <CurrentMember :currentMember="currentMember" :timer="timer" :currentMemberMaxTime="currentMemberMaxTime"
-            :isRunning="!!isRunning" :timePerMember="timePerMember" :isBlinking="!!blinkClass" :selectedSound="sound" @skip-member="skipMember"
+            :isRunning="!!isRunning" :timePerMember="timePerMember" :isBlinking="!!blinkClass" :selectedSound="sound" :speak-names="speakNames" @skip-member="skipMember"
             @next-member="nextMember" @toggle-stopwatch="toggleStopwatch" @reset-daily="resetDaily" />
         </div>
 
         <div v-else-if="!currentMember && hasEnded" class="d-grid g-2 justify-items-center">
           <h2>Todos os membros falaram!</h2>
-          <button secondary @click="resetDaily">Reiniciar Daily</button>
+          <ButtonComponent type='secondary' @click="resetDaily">Reiniciar Daily</ButtonComponent>
         </div>
 
         <div v-else class="d-grid g-2 justify-items-center">
@@ -27,7 +27,7 @@
             <input type="number" id="minutesFromNow" name="minutesFromNow" v-model.number="minutesFromNow"
               @change="updateEndTime" min="1" max="60" />
           </label>
-          <button primary @click="startDaily">Iniciar Daily</button>
+          <ButtonComponent type='primary' @click="startDaily">Iniciar Daily</ButtonComponent>
         </div>
       </div>
       </div>
@@ -42,6 +42,7 @@
 import CurrentMember from '../CurrentMember/CurrentMember.vue';
 import InfoDaily from '../InfoDaily/InfoDaily.vue';
 import MemberList from '../MemberList/MemberList.vue';
+import ButtonComponent from '../../assets/components/button/button.vue';
 
 export default {
   props: {
@@ -59,13 +60,18 @@ export default {
     sound: {
       type: String,
       default: ''
+    },
+    speakNames: {
+      type: Boolean,
+      default: false
     }
   },
   name: 'DailyScreen',
   components: {
     MemberList,
     CurrentMember,
-    InfoDaily
+    InfoDaily,
+    ButtonComponent
   },
   data() {
     return {
@@ -183,9 +189,13 @@ export default {
       let availableMembers;
 
       if (this.isOptionalPhase || this.localMembers.length === this.spokenMembers.length) {
-        availableMembers = this.remainingOptional;
+        // In optional phase, exclude anyone who has already spoken (either as optional or mandatory)
+        availableMembers = this.remainingOptional.filter(m => !this.spokenOptional.includes(m) && !this.spokenMembers.includes(m));
       } else {
+        // In mandatory phase, only those who haven't spoken as mandatory yet
         availableMembers = this.localMembers.filter(m => !this.spokenMembers.includes(m));
+        // Also ensure we don't accidentally include someone who already spoke as optional
+        availableMembers = availableMembers.filter(m => !this.spokenOptional.includes(m));
       }
 
       if (availableMembers.length > 0) {
@@ -207,7 +217,9 @@ export default {
             ? Math.floor(this.timePerMember / this.remainingOptional.length)
             : 0;
           this.currentMemberMaxTime = this.timer;
+          // Remove selected from remaining optionals
           this.remainingOptional = this.remainingOptional.filter(m => m !== selected);
+          // Mark as spoken in optional list
           if (!this.spokenOptional.includes(selected)) {
             this.spokenOptional.push(selected);
           }
@@ -221,6 +233,12 @@ export default {
           if (!this.spokenMembers.includes(selected)) {
             this.spokenMembers.push(selected);
           }
+          // Ensure that if a required member is in remainingOptional, remove them to avoid being called again
+          this.remainingOptional = this.remainingOptional.filter(m => m !== selected);
+          // Also mark as spokenOptional to prevent optional phase picking them again later
+          if (!this.spokenOptional.includes(selected)) {
+            this.spokenOptional.push(selected);
+          }
         }
 
       } else {
@@ -233,6 +251,7 @@ export default {
           this.currentMember = null;
           this.currentMemberMaxTime = 0;
           this.hasEnded = true;
+          this.playEndSound();
           return;
         }
       }
@@ -336,6 +355,38 @@ export default {
         this.timer = this.timePerMember;
         this.currentMemberMaxTime = this.timer;
       }
+    },
+
+    playEndSound() {
+      try {
+        // Respect global mute setting
+        let muted = false;
+        try {
+          const savedMuted = localStorage.getItem('soundMuted');
+          muted = savedMuted === 'true';
+        } catch (e) { /* ignore */ }
+        if (muted) return;
+
+        // Resolve sound 13.* from assets
+        let url = '';
+        try {
+          const ctx = require.context('../../assets/sounds', false, /\.(mp3|wav|ogg)$/);
+          const keys = ctx.keys();
+          if (keys.includes('./13.wav')) url = ctx('./13.wav');
+          else if (keys.includes('./13.mp3')) url = ctx('./13.mp3');
+          else {
+            const key = keys.find(k => /^\.\/13\./.test(k) || k === './13');
+            if (key) url = ctx(key);
+          }
+        } catch (e) { /* ignore */ }
+
+        if (!url) url = '../../assets/sounds/13.wav';
+
+        const audio = new Audio(url);
+        audio.preload = 'auto';
+        audio.volume = 0.9;
+        audio.play().catch(() => undefined);
+      } catch (e) { /* ignore */ }
     },
 
   },

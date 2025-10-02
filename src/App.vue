@@ -8,11 +8,14 @@
 </template>
 
 <style>
+html {
+  height: 100svh;
+}
 body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  height: calc(100vh - 60px);
+  height: calc(100vh - 38px);
 }
 
 #app {
@@ -40,7 +43,7 @@ h6 {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  height: auto;
+  height: calc(100% - 64px);
   position: relative;
   align-items: center;
 }
@@ -63,43 +66,7 @@ h6 {
   cursor: pointer;
 }
 
-button {
-  display: flex;
-  padding: 8px 16px;
-  line-height: 20px;
-  font-size: 16px;
-  border-radius: 24px;
-  border: none;
-  cursor: pointer;
-  align-items: center;
-}
 
-button[small] {
-  padding: 2px 8px;
-  font-size: 12px;
-  line-height: 16px;
-  border-radius: 12px;
-}
-
-button[primary] {
-  background-color: #1b1b96;
-  color: white;
-}
-
-button[primary]:hover {
-  background-color: #102063;
-  color: white;
-}
-
-button[secondary] {
-  background-color: white;
-  outline: 1px solid #1b1b96;
-  color: #1b1b96;
-}
-
-button[secondary]:hover {
-  background-color: #e5f0ff;
-}
 
 
 .flex-buttons {
@@ -133,14 +100,5 @@ textarea:focus {
   outline: 1px solid #1b1b96;
   box-shadow: 0px 0px 0px 3px rgba(27, 27, 150, 0.26);
   ;
-}
-
-select {
-  border: none;
-  outline: 1px solid #cbd2db;
-  transition: outline 0.2s ease-in-out;
-  box-shadow: none;
-  padding: 4px 8px;
-  border-radius: 4px;
 }
 </style>

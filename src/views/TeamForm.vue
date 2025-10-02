@@ -2,39 +2,44 @@
   <div class='card w-75'>
     <h1>{{ teamName ? 'Editar Time' : 'Novo Time' }}</h1>
     <div class="team-list">
-      <label>
-        Nome do time
-        <input v-model="localTeamName" type="text" placeholder="Nome do time" :readonly="isEdit" />
-      </label>
-      <label>
-        Membros do time
-        <textarea v-model="rawInput" placeholder="João; Maria; Lucas"></textarea>
-      </label>
-      <label>
-        Pessoas opcionais (falarão no final se sobrar tempo)
-        <textarea v-model="optionalRawInput" placeholder="Fulano; Beltrano"></textarea>
-      </label>
-      <label>
-        Som de troca
+      <InputComponent v-model="localTeamName" label="Nome do time" :readonly="isEdit"  placeholder="Nome do time"/>
+      <InputComponent v-model="rawInput" textarea label="Membros do time" placeholder="João; Maria; Lucas"/>
+      <InputComponent v-model="optionalRawInput" textarea label="Pessoas opcionais (falarão no final se sobrar tempo)" placeholder="Fulano; Beltrano"/>
         <div class="sound-row">
-          <select v-model="selectedSound">
-            <option value="">Sem som</option>
-            <option v-for="s in availableSounds" :key="s.fileName" :value="s.fileName">{{ s.label }}</option>
-          </select>
-          <button small secondary @click="previewSound" :disabled="!selectedSound">Reproduzir</button>
-          <button small secondary @click="clearSound">Sem som</button>
+          <SelectComponent v-model="audioMode" label="Áudio da troca" selected='sound' :options='[
+            { value: "sound", label: "Som" },
+            { value: "tts", label: "Ler nome (TTS)" }
+          ]'></SelectComponent>
+        </div>
+
+      <label v-if="audioMode === 'sound'">
+        <div class="sound-row">
+          <SelectComponent v-model="selectedSound" label="Som de troca" :options='[
+            { value: "", label: "Sem som" },
+            { value: "tts", label: "Ler nome (TTS)" }
+          ]'></SelectComponent>
+          <ButtonComponent small secondary @click="previewSound" :disabled="!selectedSound" label='Reproduzir'></ButtonComponent>
+          <ButtonComponent small secondary @click="clearSound" label='Sem som'></ButtonComponent>
         </div>
       </label>
     </div>
     <div class="flex-buttons">
-      <button secondary @click="cancel">Cancelar</button>
-      <button primary @click="saveTeam">Salvar</button>
+      <ButtonComponent secondary @click="cancel" label='Cancelar'></ButtonComponent>
+      <ButtonComponent primary @click="saveTeam" label='Salvar'></ButtonComponent>
     </div>
   </div>
 </template>
 <script>
+import InputComponent from '../assets/components/input/input.vue';
+import ButtonComponent from '../assets/components/button/button.vue';
+import SelectComponent from '../assets/components/select/select.vue';
 export default {
   props: ['teamName'],
+  components: {
+    InputComponent,
+    ButtonComponent,
+    SelectComponent
+  },
   data() {
     return {
       rawInput: '',
@@ -42,8 +47,9 @@ export default {
       isEdit: false,
       localTeamName: this.teamName || '',
       availableSounds: [],
-      selectedSound: '',
-      previewAudio: null
+      selectedSound: 'tts',
+      previewAudio: null,
+      audioMode: 'sound'
     }
   },
   mounted() {
@@ -55,10 +61,9 @@ export default {
         this.optionalRawInput = (found.optionalMembers || []).join('; ');
         this.isEdit = true;
         this.selectedSound = found.sound || '';
+        this.audioMode = found.speakNames ? 'tts' : 'sound';
       }
     }
-
-    // Load available sounds from assets at build-time (Vite)
     try {
       const ctx = require.context('../assets/sounds', false, /\.(mp3|wav|ogg)$/);
       this.availableSounds = ctx.keys()
@@ -103,10 +108,17 @@ export default {
         if (index !== -1) {
           teams[index].members = members;
           teams[index].optionalMembers = optionalMembers;
-          teams[index].sound = this.selectedSound || '';
+          teams[index].sound = this.audioMode === 'sound' ? (this.selectedSound || '') : '';
+          teams[index].speakNames = this.audioMode === 'tts';
         }
       } else {
-        teams.push({ name: this.localTeamName, members, optionalMembers, sound: this.selectedSound || '' });
+        teams.push({
+          name: this.localTeamName,
+          members,
+          optionalMembers,
+          sound: this.audioMode === 'sound' ? (this.selectedSound || '') : '',
+          speakNames: this.audioMode === 'tts'
+        });
       }
 
       localStorage.setItem('agileTeams', JSON.stringify(teams));
@@ -114,7 +126,7 @@ export default {
     },
     cancel() {
       this.$router.push('/');
-    }
+    },
   },
 }
 </script>

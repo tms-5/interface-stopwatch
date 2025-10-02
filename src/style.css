@@ -152,6 +152,18 @@
     justify-content: space-around;
 }
 
+.justify-self-center {
+    justify-self: center;
+}
+
+.justify-self-end {
+    justify-self: end;
+}
+
+.justify-self-start {
+    justify-self: start;
+}
+
 /*Text aling*/
 .text-end {
     text-align: end;

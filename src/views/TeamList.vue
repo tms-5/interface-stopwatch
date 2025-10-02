@@ -5,16 +5,21 @@
       <li v-for="team in teams" :key="team.name">
         <router-link :to="`/daily/${team.name}`">{{ team.name }}</router-link>
         <div class='flex-buttons gap-2'>
-          <button small secondary @click="editTeam(team.name)">Editar</button>
-          <button small secondary @click="confirmDelete(team.name)">Excluir</button>
+          <ButtonComponent small secondary @click="editTeam(team.name)" label='Editar'></ButtonComponent>
+          <ButtonComponent small secondary @click="confirmDelete(team.name)" label='Excluir'></ButtonComponent>
         </div>
       </li>
     </ul>
-    <button primary><router-link to="/create">+ Novo Time</router-link></button>
+    <ButtonComponent primary label='+ Novo Time' @click="$router.push('/create')" class='justify-self-center'></ButtonComponent>
   </div>
 </template>
 <script>
+import ButtonComponent from '../assets/components/button/button.vue';
+
 export default {
+  components: {
+    ButtonComponent
+  },
   data() {
     return {
       teams: []
