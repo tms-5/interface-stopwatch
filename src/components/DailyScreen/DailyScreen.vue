@@ -94,6 +94,7 @@ export default {
       localMembers: this.$props.members || [],
       localOptionalMembers: this.$props.optionalMembers || [],
       excludeOnce: null,
+      pauseStartedAt: null,
     }
   },
   mounted() {
@@ -167,7 +168,17 @@ export default {
       if (this.isRunning) {
         clearInterval(this.interval);
         this.isRunning = false;
+        // Mark when we paused to later shift endTime by paused duration
+        this.pauseStartedAt = new Date();
       } else {
+        // Shift endTime forward by the paused duration so timeLeft does not shrink while paused
+        if (this.pauseStartedAt && this.endTime) {
+          const now = new Date();
+          const pausedMs = now.getTime() - this.pauseStartedAt.getTime();
+          this.endTime = new Date(this.endTime.getTime() + pausedMs);
+          this.pauseStartedAt = null;
+        }
+
         this.isRunning = true;
         this.interval = setInterval(() => {
           if (this.timer > 0) {
@@ -335,6 +346,7 @@ export default {
       this.spokenMembers = [];
       this.spokenOptional = [];
       this.remainingOptional = [];
+      this.pauseStartedAt = null;
       clearInterval(this.interval);
     },
 
